@@ -5,14 +5,13 @@
 	<packageId>xenotyperandomizer.1trickPwnyta</packageId>
 	<supportedVersions>
 		<li>1.4</li>
+		<li>1.5</li>
 	</supportedVersions>
 	<description>
 Adds a Randomize button to the Xenotype editor.
 
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-If you enjoy my work and want to support me and my family, I take donations at:
-https://ko-fi.com/1trickpwnyta
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+=== Updates ===
+03/21/2024: Updated to 1.5
 	</description>
 	<url>https://github.com/1trickPwnyta/XenotypeRandomizer</url>
 	<modDependencies>
