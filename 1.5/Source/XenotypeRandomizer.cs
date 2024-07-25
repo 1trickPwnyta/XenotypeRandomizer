@@ -32,27 +32,20 @@ namespace XenotypeRandomizer
             return totalMetabolicEfficiency;
         }
 
-        private static void RemoveRandomGenesWithMet(List<GeneDef> genes, bool lessThanZero)
+        private static void RemoveRandomGenes(List<GeneDef> genes, IntRange metRange)
         {
-            List<GeneDef> genesToRemove = new List<GeneDef>();
+            int numberToRemove = Rand.Range(0, genes.Count);
 
-            foreach (GeneDef gene in genes)
+            for (int i = 0; i < numberToRemove; i++)
             {
+                GeneDef gene = genes.RandomElement();
                 if (!IsPrerequisite(gene))
                 {
-                    if ((lessThanZero && gene.biostatMet < 0) || (!lessThanZero && gene.biostatMet > 0))
+                    if (gene.biostatMet >= metRange.min && gene.biostatMet <= metRange.max)
                     {
-                        if (Random.value < 0.5f)
-                        {
-                            genesToRemove.Add(gene);
-                        }
+                        genes.Remove(gene);
                     }
                 }
-            }
-
-            foreach (GeneDef geneToRemove in genesToRemove)
-            {
-                genes.Remove(geneToRemove);
             }
         }
 
@@ -106,7 +99,7 @@ namespace XenotypeRandomizer
             return iconDef;
         }
 
-        public static void Randomize(List<GeneDef> genes, ref XenotypeIconDef iconDef)
+        public static void Randomize(List<GeneDef> genes, ref XenotypeIconDef iconDef, bool allowNonviolent = true)
         {
             // clear the list of genes
             genes.Clear();
@@ -135,44 +128,50 @@ namespace XenotypeRandomizer
                     gene.biostatCpx + 
                     Mathf.Abs(gene.biostatMet) + 
                     positionInGroup*2 + 
-                    (gene.prerequisite != null? 10 : 0) + 
-                    (isPrereq? 10: 0);
+                    (gene.prerequisite != null? 20 : 0) + 
+                    (isPrereq? 20: 0);
 
-                // chance to add gene is lower with higher obscurity
-                if (Random.Range(0, obscurity) == 0)
+                if (allowNonviolent || (gene.disabledWorkTags & WorkTags.Violent) == WorkTags.None)
                 {
-                    // add the gene if it isn't already included
-                    if (!genes.Contains(gene))
+                    // chance to add gene is lower with higher obscurity
+                    if (Random.Range(0, obscurity) == 0)
                     {
-                        genes.Add(gene);
-                    }
-
-                    // add any prerequisite gene
-                    if (gene.prerequisite != null)
-                    {
-                        if (!genes.Contains(gene.prerequisite))
+                        // add the gene if it isn't already included
+                        if (!genes.Contains(gene))
                         {
-                            genes.Add(gene.prerequisite);
+                            genes.Add(gene);
                         }
-                    }
 
-                    // remove any conflicting genes
-                    genesToRemove = new List<GeneDef>();
-                    foreach (GeneDef otherGene in genes)
-                    {
-                        if (gene != otherGene && gene.ConflictsWith(otherGene))
+                        // add any prerequisite gene
+                        if (gene.prerequisite != null)
                         {
-                            genesToRemove.Add(otherGene);
+                            if (!genes.Contains(gene.prerequisite))
+                            {
+                                genes.Add(gene.prerequisite);
+                            }
                         }
-                    }
-                    foreach (GeneDef geneToRemove in genesToRemove)
-                    {
-                        genes.Remove(geneToRemove);
+
+                        // remove any conflicting genes
+                        genesToRemove = new List<GeneDef>();
+                        foreach (GeneDef otherGene in genes)
+                        {
+                            if (gene != otherGene && gene.ConflictsWith(otherGene))
+                            {
+                                genesToRemove.Add(otherGene);
+                            }
+                        }
+                        foreach (GeneDef geneToRemove in genesToRemove)
+                        {
+                            genes.Remove(geneToRemove);
+                        }
                     }
                 }
 
                 previousGene = gene;
             }
+
+            // remove random genes so that the list isn't always so long
+            RemoveRandomGenes(genes, new IntRange(int.MinValue, int.MaxValue));
 
             // ensure minimum and maximum metabolic efficiency are met
             int totalMetabolicEfficiency = GetTotalMetabolicEfficiency(genes);
@@ -181,13 +180,13 @@ namespace XenotypeRandomizer
                 // remove genes at random until minimum is met
                 while (totalMetabolicEfficiency < -5)
                 {
-                    RemoveRandomGenesWithMet(genes, true);
+                    RemoveRandomGenes(genes, new IntRange(int.MinValue, -1));
                     totalMetabolicEfficiency = GetTotalMetabolicEfficiency(genes);
                 }
                 // remove genes at random until maximum is met
                 while (totalMetabolicEfficiency > 5)
                 {
-                    RemoveRandomGenesWithMet(genes, false);
+                    RemoveRandomGenes(genes, new IntRange(1, int.MaxValue));
                     totalMetabolicEfficiency = GetTotalMetabolicEfficiency(genes);
                 }
             }
