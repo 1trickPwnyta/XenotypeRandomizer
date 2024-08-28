@@ -11,6 +11,7 @@
 Adds a Randomize button to the Xenotype editor.
 
 === Updates ===
+08/28/2024: Added options for allowing or disallowing nonviolent and/or inbred xenotypes
 07/24/2024: Improved random variability, added support for upcoming mod Faction Xenotype Randomizer
 03/21/2024: Updated to 1.5
 	</description>

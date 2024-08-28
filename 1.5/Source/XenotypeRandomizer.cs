@@ -99,7 +99,7 @@ namespace XenotypeRandomizer
             return iconDef;
         }
 
-        public static void Randomize(List<GeneDef> genes, ref XenotypeIconDef iconDef, bool allowNonviolent = true)
+        public static void Randomize(List<GeneDef> genes, ref XenotypeIconDef iconDef, bool allowNonviolent = true, bool allowInbred = false)
         {
             // clear the list of genes
             genes.Clear();
@@ -131,7 +131,7 @@ namespace XenotypeRandomizer
                     (gene.prerequisite != null? 20 : 0) + 
                     (isPrereq? 20: 0);
 
-                if (allowNonviolent || (gene.disabledWorkTags & WorkTags.Violent) == WorkTags.None)
+                if ((allowNonviolent || (gene.disabledWorkTags & WorkTags.Violent) == WorkTags.None) && (allowInbred || gene != GeneDefOf.Inbred))
                 {
                     // chance to add gene is lower with higher obscurity
                     if (Random.Range(0, obscurity) == 0)

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <LanguageData>
 	<XenotypeRandomizer_Randomize>Randomize</XenotypeRandomizer_Randomize>
+	<XenotypeRandomizer_AllowNonviolent>Allow violence-disabling genes in randomization</XenotypeRandomizer_AllowNonviolent>
+	<XenotypeRandomizer_AllowInbred>Allow inbred gene in randomization</XenotypeRandomizer_AllowInbred>
 </LanguageData>
