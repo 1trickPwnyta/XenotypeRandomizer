@@ -9,11 +9,12 @@ namespace XenotypeRandomizer
         public const string PACKAGE_ID = "xenotyperandomizer.1trickPwnyta";
         public const string PACKAGE_NAME = "Xenotype Randomizer";
 
+        public static XenotypeRandomizerMod Mod { get; private set; }
         public static XenotypeRandomizerSettings Settings;
 
         public XenotypeRandomizerMod(ModContentPack content) : base(content)
         {
-            Settings = GetSettings<XenotypeRandomizerSettings>();
+            Mod = this;
 
             var harmony = new Harmony(PACKAGE_ID);
             harmony.PatchAll();

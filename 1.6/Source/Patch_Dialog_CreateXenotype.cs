@@ -21,7 +21,7 @@ namespace XenotypeRandomizer
             {
                 SoundDefOf.Tick_High.PlayOneShotOnCamera(null);
 
-                XenotypeRandomizer.Randomize(___selectedGenes, ref ___iconDef, XenotypeRandomizerSettings.AllowNonviolent, XenotypeRandomizerSettings.AllowInbred);
+                XenotypeRandomizer.Randomize(___selectedGenes, ref ___iconDef);
 
                 if (!___xenotypeNameLocked)
                 {

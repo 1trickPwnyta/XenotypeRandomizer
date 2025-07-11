@@ -8,6 +8,30 @@ namespace XenotypeRandomizer
 {
     public static class XenotypeRandomizer
     {
+        public static List<GeneDef> DefaultGenePool => GeneUtility.GenesInOrder.Where(g => g.biostatArc <= 0).ToList();
+
+        public static bool IsNonviolent(this GeneDef gene) => (gene.disabledWorkTags & WorkTags.Violent) != WorkTags.None;
+
+        private static bool IsAllowed(GeneDef gene, bool? overrideAllowNonviolent, bool? overrideAllowInbred)
+        {
+            bool skip = false;
+            bool overrideSkip = false;
+            if (gene.IsNonviolent() && overrideAllowNonviolent.HasValue)
+            {
+                overrideSkip |= overrideAllowNonviolent.Value;
+            }
+            if (gene == GeneDefOf.Inbred && overrideAllowInbred.HasValue)
+            {
+                overrideSkip |= overrideAllowInbred.Value;
+            }
+            if (!overrideSkip && XenotypeRandomizerSettings.DisallowedGenes.Contains(gene))
+            {
+                skip = true;
+            }
+
+            return !skip;
+        }
+
         private static bool IsPrerequisite(GeneDef gene)
         {
             bool isPrereq = false;
@@ -34,7 +58,7 @@ namespace XenotypeRandomizer
 
         private static void RemoveRandomGenes(List<GeneDef> genes, IntRange metRange)
         {
-            int numberToRemove = Rand.Range(0, genes.Count);
+            int numberToRemove = Rand.Range(Mathf.Max(genes.Count - 20, 0), genes.Count);
 
             for (int i = 0; i < numberToRemove; i++)
             {
@@ -99,7 +123,7 @@ namespace XenotypeRandomizer
             return iconDef;
         }
 
-        public static void Randomize(List<GeneDef> genes, ref XenotypeIconDef iconDef, bool allowNonviolent = true, bool allowInbred = false)
+        public static void Randomize(List<GeneDef> genes, ref XenotypeIconDef iconDef, bool? overrideAllowNonviolent = null, bool? overrideAllowInbred = null)
         {
             // clear the list of genes
             genes.Clear();
@@ -108,7 +132,7 @@ namespace XenotypeRandomizer
             GeneDef previousGene = null;
             int positionInGroup = 1;
 
-            foreach (GeneDef gene in GeneUtility.GenesInOrder.Where(d => d.biostatArc <= 0))
+            foreach (GeneDef gene in DefaultGenePool)
             {
                 // keep track of the gene's position in conflicting groups of genes
                 if (previousGene == null || !gene.ConflictsWith(previousGene))
@@ -127,42 +151,42 @@ namespace XenotypeRandomizer
                 int obscurity = 
                     gene.biostatCpx + 
                     Mathf.Abs(gene.biostatMet) + 
-                    positionInGroup*2 + 
-                    (gene.prerequisite != null? 20 : 0) + 
-                    (isPrereq? 20: 0);
+                    positionInGroup * 2 + 
+                    (gene.prerequisite != null ? 20 : 0) + 
+                    (isPrereq ? 20 : 0);
 
-                if ((allowNonviolent || (gene.disabledWorkTags & WorkTags.Violent) == WorkTags.None) && (allowInbred || gene != GeneDefOf.Inbred))
+                if (IsAllowed(gene, overrideAllowNonviolent, overrideAllowInbred))
                 {
                     // chance to add gene is lower with higher obscurity
                     if (Random.Range(0, obscurity) == 0)
                     {
-                        // add the gene if it isn't already included
-                        if (!genes.Contains(gene))
+                        // add the gene if it isn't already included and any prerequisite is allowed
+                        if (!genes.Contains(gene) && (gene.prerequisite == null || IsAllowed(gene.prerequisite, overrideAllowNonviolent, overrideAllowInbred)))
                         {
                             genes.Add(gene);
-                        }
 
-                        // add any prerequisite gene
-                        if (gene.prerequisite != null)
-                        {
-                            if (!genes.Contains(gene.prerequisite))
+                            // add any prerequisite gene
+                            if (gene.prerequisite != null)
                             {
-                                genes.Add(gene.prerequisite);
+                                if (!genes.Contains(gene.prerequisite))
+                                {
+                                    genes.Add(gene.prerequisite);
+                                }
                             }
-                        }
 
-                        // remove any conflicting genes
-                        genesToRemove = new List<GeneDef>();
-                        foreach (GeneDef otherGene in genes)
-                        {
-                            if (gene != otherGene && gene.ConflictsWith(otherGene))
+                            // remove any conflicting genes
+                            genesToRemove = new List<GeneDef>();
+                            foreach (GeneDef otherGene in genes)
                             {
-                                genesToRemove.Add(otherGene);
+                                if (gene != otherGene && gene.ConflictsWith(otherGene))
+                                {
+                                    genesToRemove.Add(otherGene);
+                                }
                             }
-                        }
-                        foreach (GeneDef geneToRemove in genesToRemove)
-                        {
-                            genes.Remove(geneToRemove);
+                            foreach (GeneDef geneToRemove in genesToRemove)
+                            {
+                                genes.Remove(geneToRemove);
+                            }
                         }
                     }
                 }
@@ -189,6 +213,11 @@ namespace XenotypeRandomizer
                     RemoveRandomGenes(genes, new IntRange(1, int.MaxValue));
                     totalMetabolicEfficiency = GetTotalMetabolicEfficiency(genes);
                 }
+            }
+
+            if (!genes.Any() && DefaultGenePool.Where(g => IsAllowed(g, overrideAllowNonviolent, overrideAllowInbred) && g.prerequisite == null).TryRandomElement(out GeneDef onlyGene))
+            {
+                genes.Add(onlyGene);
             }
 
             // find a suitable icon
