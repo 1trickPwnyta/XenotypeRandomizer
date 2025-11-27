@@ -12,7 +12,7 @@ namespace XenotypeRandomizer
 
         public static bool IsNonviolent(this GeneDef gene) => (gene.disabledWorkTags & WorkTags.Violent) != WorkTags.None;
 
-        private static bool IsAllowed(GeneDef gene, bool? overrideAllowNonviolent, bool? overrideAllowInbred)
+        private static bool IsAllowed(GeneDef gene, bool? overrideAllowNonviolent, bool? overrideAllowInbred, bool desperate = false)
         {
             bool skip = false;
             bool overrideSkip = false;
@@ -24,7 +24,7 @@ namespace XenotypeRandomizer
             {
                 overrideSkip |= overrideAllowInbred.Value;
             }
-            if (!overrideSkip && XenotypeRandomizerSettings.DisallowedGenes.Contains(gene))
+            if (!overrideSkip && !desperate && XenotypeRandomizerSettings.DisallowedGenes.Contains(gene))
             {
                 skip = true;
             }
@@ -46,26 +46,23 @@ namespace XenotypeRandomizer
             return isPrereq;
         }
 
-        private static int GetTotalMetabolicEfficiency(List<GeneDef> genes)
-        {
-            int totalMetabolicEfficiency = 0;
-            foreach (GeneDef gene in genes)
-            {
-                totalMetabolicEfficiency += gene.biostatMet;
-            }
-            return totalMetabolicEfficiency;
-        }
+        private static int GetTotalComplexity(this List<GeneDef> genes) => genes.Sum(g => g.biostatCpx);
 
-        private static void RemoveRandomGenes(List<GeneDef> genes, IntRange metRange)
+        private static int GetTotalMetabolicEfficiency(this List<GeneDef> genes) => genes.Sum(g => g.biostatMet);
+
+        private static void RemoveRandomGenes(List<GeneDef> genes, int numberToRemove = -1, IntRange? metRange = null)
         {
-            int numberToRemove = Rand.Range(Mathf.Max(genes.Count - 20, 0), genes.Count);
+            if (numberToRemove < 0)
+            {
+                numberToRemove = Rand.Range(Mathf.Max(genes.Count - 20, 0), genes.Count);
+            }
 
             for (int i = 0; i < numberToRemove; i++)
             {
                 GeneDef gene = genes.RandomElement();
                 if (!IsPrerequisite(gene))
                 {
-                    if (gene.biostatMet >= metRange.min && gene.biostatMet <= metRange.max)
+                    if (!metRange.HasValue || (gene.biostatMet >= metRange.Value.min && gene.biostatMet <= metRange.Value.max))
                     {
                         genes.Remove(gene);
                     }
@@ -132,7 +129,7 @@ namespace XenotypeRandomizer
             GeneDef previousGene = null;
             int positionInGroup = 1;
 
-            foreach (GeneDef gene in DefaultGenePool)
+            foreach (GeneDef gene in DefaultGenePool.Where(g => XenotypeRandomizerSettings.MaxComplexity < 0 || g.biostatCpx <= XenotypeRandomizerSettings.MaxComplexity))
             {
                 // keep track of the gene's position in conflicting groups of genes
                 if (previousGene == null || !gene.ConflictsWith(previousGene))
@@ -195,29 +192,57 @@ namespace XenotypeRandomizer
             }
 
             // remove random genes so that the list isn't always so long
-            RemoveRandomGenes(genes, new IntRange(int.MinValue, int.MaxValue));
+            RemoveRandomGenes(genes);
+
+            int retries = 1000;
+
+            // remove random genes until max complexity is satisfied
+            while (retries-- > 0 && XenotypeRandomizerSettings.MaxComplexity >= 0 && genes.GetTotalComplexity() > XenotypeRandomizerSettings.MaxComplexity)
+            {
+                RemoveRandomGenes(genes);
+            }
 
             // ensure minimum and maximum metabolic efficiency are met
-            int totalMetabolicEfficiency = GetTotalMetabolicEfficiency(genes);
-            while (totalMetabolicEfficiency < -5 || totalMetabolicEfficiency > 5)
+            int totalMetabolicEfficiency = genes.GetTotalMetabolicEfficiency();
+            while (retries > 0 && (totalMetabolicEfficiency < XenotypeRandomizerSettings.MetabolismRange.min || totalMetabolicEfficiency > XenotypeRandomizerSettings.MetabolismRange.max))
             {
                 // remove genes at random until minimum is met
-                while (totalMetabolicEfficiency < -5)
+                while (retries-- > 0 && totalMetabolicEfficiency < XenotypeRandomizerSettings.MetabolismRange.min)
                 {
-                    RemoveRandomGenes(genes, new IntRange(int.MinValue, -1));
-                    totalMetabolicEfficiency = GetTotalMetabolicEfficiency(genes);
+                    RemoveRandomGenes(genes, 1, new IntRange(int.MinValue, -1));
+                    totalMetabolicEfficiency = genes.GetTotalMetabolicEfficiency();
                 }
                 // remove genes at random until maximum is met
-                while (totalMetabolicEfficiency > 5)
+                while (retries-- > 0 && totalMetabolicEfficiency > XenotypeRandomizerSettings.MetabolismRange.max)
                 {
-                    RemoveRandomGenes(genes, new IntRange(1, int.MaxValue));
-                    totalMetabolicEfficiency = GetTotalMetabolicEfficiency(genes);
+                    RemoveRandomGenes(genes, 1, new IntRange(1, int.MaxValue));
+                    totalMetabolicEfficiency = genes.GetTotalMetabolicEfficiency();
                 }
             }
 
-            if (!genes.Any() && DefaultGenePool.Where(g => IsAllowed(g, overrideAllowNonviolent, overrideAllowInbred) && g.prerequisite == null).TryRandomElement(out GeneDef onlyGene))
+            if (retries <= 0)
             {
-                genes.Add(onlyGene);
+                genes.Clear();
+            }
+
+            // if xenotype is empty, desperately add one gene
+            if (!genes.Any())
+            {
+                if (DefaultGenePool.Where(g => IsAllowed(g, overrideAllowNonviolent, overrideAllowInbred, true) && g.prerequisite == null).TryRandomElement(out GeneDef onlyGene))
+                {
+                    genes.Add(onlyGene);
+                }
+                else
+                {
+                    throw new System.Exception("Failed to create random xenotype.");
+                }
+            }
+
+            // warn if not within parameters
+            totalMetabolicEfficiency = genes.GetTotalMetabolicEfficiency();
+            if (genes.Any(g => !IsAllowed(g, overrideAllowNonviolent, overrideAllowInbred)) || (XenotypeRandomizerSettings.MaxComplexity >= 0 && genes.GetTotalComplexity() > XenotypeRandomizerSettings.MaxComplexity) || totalMetabolicEfficiency < XenotypeRandomizerSettings.MetabolismRange.min || totalMetabolicEfficiency > XenotypeRandomizerSettings.MetabolismRange.max)
+            {
+                Messages.Message("XenotypeRandomizer_CantMakeXenotype".Translate(), MessageTypeDefOf.RejectInput, false);
             }
 
             // find a suitable icon

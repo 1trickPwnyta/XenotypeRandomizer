@@ -5,4 +5,8 @@
 	<XenotypeRandomizer_AllowAll>Allow all</XenotypeRandomizer_AllowAll>
 	<XenotypeRandomizer_DisallowAll>Disallow all</XenotypeRandomizer_DisallowAll>
 	<XenotypeRandomizer_DisallowNonviolent>Disallow all violence-disabling genes</XenotypeRandomizer_DisallowNonviolent>
+	<XenotypeRandomizer_LimitComplexity>Limit xenotype complexity</XenotypeRandomizer_LimitComplexity>
+	<XenotypeRandomizer_MetabolismRange>Allowed metabolic efficiency</XenotypeRandomizer_MetabolismRange>
+	<XenotypeRandomizer_MaxComplexity>Max complexity: </XenotypeRandomizer_MaxComplexity>
+	<XenotypeRandomizer_CantMakeXenotype>A randomized xenotype could not be created within the configured restrictions.</XenotypeRandomizer_CantMakeXenotype>
 </LanguageData>

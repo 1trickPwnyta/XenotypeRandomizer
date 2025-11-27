@@ -3,25 +3,26 @@
 	<name>Xenotype Randomizer</name>
 	<author>1trickPwnyta</author>
 	<packageId>xenotyperandomizer.1trickPwnyta</packageId>
-	<modVersion IgnoreIfNoMatchingField="True">1.3.0</modVersion>
+	<modVersion IgnoreIfNoMatchingField="True">1.4.0</modVersion>
 	<supportedVersions>
 		<li>1.4</li>
 		<li>1.5</li>
 		<li>1.6</li>
 	</supportedVersions>
-	<description>
-Adds a Randomize button to the Xenotype editor.
+	<description><![CDATA[Adds a Randomize button to the Xenotype editor.
 
-=== Updates ===
+________________________________________________
+
+<size=18px><color=#5aa9d6>Updates</color></size>
 07/10/2025: Added options to allow/disallow any specific gene in mod settings
 06/14/2025: Updated to 1.6
 08/28/2024: Added options for allowing or disallowing nonviolent and/or inbred xenotypes
 07/24/2024: Improved random variability, added support for upcoming mod Faction Xenotype Randomizer
 03/21/2024: Updated to 1.5
 
-=== Credits ===
-Mod icon: twitter.com/mouse_draws
-	</description>
+<size=18px><color=#5aa9d6>Credits</color></size>
+  &#8226; Mod icon: twitter.com/mouse_draws
+	]]></description>
 	<url>https://github.com/1trickPwnyta/XenotypeRandomizer</url>
 	<modDependencies>
 		<li>

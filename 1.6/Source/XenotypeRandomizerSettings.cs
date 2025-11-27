@@ -18,17 +18,45 @@ namespace XenotypeRandomizer
 
         private static bool AllowNonviolent = true;
         private static bool AllowInbred = false;
+        public static int MaxComplexity = -1;
+        public static IntRange MetabolismRange = new IntRange(-5, 5);
         public static HashSet<GeneDef> DisallowedGenes = new HashSet<GeneDef>() { GeneDefOf.Inbred };
 
         private static Vector2 genesScrollPosition;
         private static float genesHeight;
         private static readonly QuickSearchWidget search = new QuickSearchWidget();
+        private static string complexityEditBuffer;
 
         public static void DoSettingsWindowContents(Rect inRect)
         {
             Listing_Standard listing = new Listing_Standard();
 
             listing.Begin(inRect);
+
+            Rect complexityRect = listing.GetRect(30f);
+            bool limitComplexity = MaxComplexity >= 0;
+            Widgets.CheckboxLabeled(complexityRect.LeftHalf(), "XenotypeRandomizer_LimitComplexity".Translate(), ref limitComplexity, placeCheckboxNearText: true);
+            if (limitComplexity)
+            {
+                if (MaxComplexity < 0)
+                {
+                    MaxComplexity = 15;
+                    complexityEditBuffer = MaxComplexity.ToString();
+                }
+                Rect complexityEntryRect = complexityRect.RightHalf();
+                using (new TextBlock(TextAnchor.MiddleRight)) Widgets.Label(complexityEntryRect.LeftHalf(), "XenotypeRandomizer_MaxComplexity".Translate());
+                Widgets.IntEntry(complexityEntryRect.RightHalf(), ref MaxComplexity, ref complexityEditBuffer);
+            }
+            else
+            {
+                MaxComplexity = -1;
+            }
+
+            Rect metabolismRangeRect = listing.GetRect(30f);
+            Widgets.Label(metabolismRangeRect.LeftHalf(), "XenotypeRandomizer_MetabolismRange".Translate());
+            Widgets.IntRange(metabolismRangeRect.RightHalf(), "MetabolismRange".GetHashCode(), ref MetabolismRange, -5, 5);
+
+            listing.Gap(30f);
 
             DoGenes(listing);
 
@@ -102,6 +130,8 @@ namespace XenotypeRandomizer
         {
             Scribe_Values.Look(ref AllowNonviolent, "AllowNonviolent");
             Scribe_Values.Look(ref AllowInbred, "AllowInbred");
+            Scribe_Values.Look(ref MaxComplexity, "MaxComplexity", -1);
+            Scribe_Values.Look(ref MetabolismRange, "MetabolismRange", new IntRange(-5, 5));
             Scribe_Collections.Look(ref DisallowedGenes, "DisallowedGenes", LookMode.Def);
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
